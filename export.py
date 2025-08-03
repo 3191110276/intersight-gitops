@@ -40,7 +40,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from core.api_client import IntersightAPIClient
 from core.error_handler import get_global_error_handler, handle_errors
 from core.exceptions import IntersightGitOpsError, CriticalError
-from utils.openapi_parser import OpenAPIParser
 from core.object_registry import get_global_registry, register_object_type, get_dependency_order
 from objects.organization import Organization
 from objects.bios_policy import BiosPolicy
@@ -194,22 +193,14 @@ def get_full_object_type(simplified_type: str) -> str:
     return type_mapping.get(base_type, simplified_type)
 
 
-def load_openapi_schema() -> OpenAPIParser:
-    """Load and parse the OpenAPI schema."""
-    openapi_file = os.path.join(os.path.dirname(__file__), 'openapi.json')
-    if not os.path.exists(openapi_file):
-        raise FileNotFoundError(f"OpenAPI schema file not found: {openapi_file}")
-    
-    return OpenAPIParser(openapi_file)
 
 
-def setup_object_registry(api_client: IntersightAPIClient, openapi_parser: OpenAPIParser):
+def setup_object_registry(api_client: IntersightAPIClient):
     """
     Set up the object registry with all available object types.
     
     Args:
         api_client: The Intersight API client
-        openapi_parser: The OpenAPI schema parser
     """
     # Clear the global registry
     registry = get_global_registry()
@@ -263,8 +254,7 @@ def setup_object_registry(api_client: IntersightAPIClient, openapi_parser: OpenA
     for object_type_id in registry.get_registered_types().keys():
         registry.create_instance(
             object_type_id,
-            api_client=api_client, 
-            openapi_schema=openapi_parser.schema
+            api_client=api_client
         )
 
 
@@ -541,17 +531,13 @@ def main():
             object_types = [t.strip() for t in args.object_types.split(',')]
             logger.info(f"Export limited to object types: {object_types}")
         
-        # Load OpenAPI schema
-        logger.info("Loading OpenAPI schema...")
-        openapi_parser = load_openapi_schema()
-        
         # Initialize API client
         logger.info("Initializing Intersight API client...")
         api_client = IntersightAPIClient()
         
         # Set up object registry
         logger.info("Setting up object registry...")
-        setup_object_registry(api_client, openapi_parser)
+        setup_object_registry(api_client)
         
         # Get available exporters
         logger.info("Loading object exporters...")

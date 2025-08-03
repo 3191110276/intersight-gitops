@@ -33,7 +33,6 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from core.api_client import IntersightAPIClient
-from utils.openapi_parser import OpenAPIParser
 from objects.organization import Organization
 from objects.bios_policy import BiosPolicy
 from objects.boot_policy import BootPolicy
@@ -128,13 +127,6 @@ def setup_logging(log_level: str = None, debug: bool = False):
     )
 
 
-def load_openapi_schema() -> OpenAPIParser:
-    """Load and parse the OpenAPI schema."""
-    openapi_file = os.path.join(os.path.dirname(__file__), 'openapi.json')
-    if not os.path.exists(openapi_file):
-        raise FileNotFoundError(f"OpenAPI schema file not found: {openapi_file}")
-    
-    return OpenAPIParser(openapi_file)
 
 
 def get_available_documenters() -> Dict[str, Any]:
@@ -200,13 +192,12 @@ def get_available_documenters() -> Dict[str, Any]:
     return documenters
 
 
-def generate_markdown_documentation(documenters: Dict[str, Any], openapi_parser: OpenAPIParser) -> str:
+def generate_markdown_documentation(documenters: Dict[str, Any]) -> str:
     """
     Generate comprehensive markdown documentation.
     
     Args:
         documenters: Dictionary of available documenters
-        openapi_parser: OpenAPI schema parser
         
     Returns:
         Markdown documentation as string
@@ -256,9 +247,6 @@ def generate_markdown_documentation(documenters: Dict[str, Any], openapi_parser:
     for object_type, documenter in sorted(documenters.items()):
         try:
             logger.info(f"Generating documentation for {documenter.display_name}...")
-            
-            # Set the OpenAPI schema for the documenter
-            documenter.openapi_schema = openapi_parser.schema
             
             # Generate documentation
             doc_info = documenter.document()
@@ -490,13 +478,12 @@ def generate_markdown_documentation(documenters: Dict[str, Any], openapi_parser:
     return '\n'.join(doc_lines)
 
 
-def generate_json_documentation(documenters: Dict[str, Any], openapi_parser: OpenAPIParser) -> str:
+def generate_json_documentation(documenters: Dict[str, Any]) -> str:
     """
     Generate documentation in JSON format.
     
     Args:
         documenters: Dictionary of available documenters
-        openapi_parser: OpenAPI schema parser
         
     Returns:
         JSON documentation as string
@@ -514,9 +501,6 @@ def generate_json_documentation(documenters: Dict[str, Any], openapi_parser: Ope
     for object_type, documenter in documenters.items():
         try:
             logger.info(f"Generating JSON documentation for {documenter.display_name}...")
-            
-            # Set the OpenAPI schema for the documenter
-            documenter.openapi_schema = openapi_parser.schema
             
             # Generate documentation
             doc_info = documenter.document()
@@ -588,10 +572,6 @@ def main():
     try:
         logger.info("Starting Intersight GitOps documentation generation...")
         
-        # Load OpenAPI schema
-        logger.info("Loading OpenAPI schema...")
-        openapi_parser = load_openapi_schema()
-        
         # Get available documenters
         logger.info("Loading object documenters...")
         documenters = get_available_documenters()
@@ -601,9 +581,9 @@ def main():
         logger.info(f"Generating {args.format} documentation...")
         
         if args.format == 'json':
-            documentation = generate_json_documentation(documenters, openapi_parser)
+            documentation = generate_json_documentation(documenters)
         else:
-            documentation = generate_markdown_documentation(documenters, openapi_parser)
+            documentation = generate_markdown_documentation(documenters)
         
         # Write to file
         output_file = os.path.abspath(args.output_file)

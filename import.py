@@ -41,7 +41,6 @@ except ImportError:
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from core.api_client import IntersightAPIClient
-from utils.openapi_parser import OpenAPIParser
 from objects.organization import Organization
 from objects.bios_policy import BiosPolicy
 from objects.boot_policy import BootPolicy
@@ -120,13 +119,6 @@ def setup_logging(log_level: str = None, debug: bool = False):
     )
 
 
-def load_openapi_schema() -> OpenAPIParser:
-    """Load and parse the OpenAPI schema."""
-    openapi_file = os.path.join(os.path.dirname(__file__), 'openapi.json')
-    if not os.path.exists(openapi_file):
-        raise FileNotFoundError(f"OpenAPI schema file not found: {openapi_file}")
-    
-    return OpenAPIParser(openapi_file)
 
 
 def _expand_object_type(simplified_type: str) -> str:
@@ -221,7 +213,7 @@ def _expand_object_type(simplified_type: str) -> str:
     return type_mapping.get(base_type, base_type)
 
 
-def get_available_importers(api_client: IntersightAPIClient, openapi_parser: OpenAPIParser) -> Dict[str, Any]:
+def get_available_importers(api_client: IntersightAPIClient) -> Dict[str, Any]:
     """
     Get available object importers.
     
@@ -231,7 +223,7 @@ def get_available_importers(api_client: IntersightAPIClient, openapi_parser: Ope
     importers = {}
     
     # Initialize Organization importer
-    org_importer = Organization(api_client=api_client, openapi_schema=openapi_parser.schema)
+    org_importer = Organization(api_client=api_client)
     importers[org_importer.object_type] = org_importer
     
     # Initialize all Policy importers
@@ -250,21 +242,21 @@ def get_available_importers(api_client: IntersightAPIClient, openapi_parser: Ope
     ]
     
     for policy_class in policy_classes:
-        policy_importer = policy_class(api_client=api_client, openapi_schema=openapi_parser.schema)
+        policy_importer = policy_class(api_client=api_client)
         importers[policy_importer.object_type] = policy_importer
     
     # Initialize Profile importers
     profile_classes = [ChassisProfile, ServerProfile, DomainProfile]
     
     for profile_class in profile_classes:
-        profile_importer = profile_class(api_client=api_client, openapi_schema=openapi_parser.schema)
+        profile_importer = profile_class(api_client=api_client)
         importers[profile_importer.object_type] = profile_importer
     
     # Initialize Pool importers
     pool_classes = [FcPool, IpPool, IqnPool, MacPool, ResourcePool, UuidPool]
     
     for pool_class in pool_classes:
-        pool_importer = pool_class(api_client=api_client, openapi_schema=openapi_parser.schema)
+        pool_importer = pool_class(api_client=api_client)
         importers[pool_importer.object_type] = pool_importer
     
     return importers
@@ -1008,17 +1000,13 @@ def main():
             safe_mode = False
         # Otherwise, let import_objects use the default (environment variable)
         
-        # Load OpenAPI schema
-        logger.info("Loading OpenAPI schema...")
-        openapi_parser = load_openapi_schema()
-        
         # Initialize API client
         logger.info("Initializing Intersight API client...")
         api_client = IntersightAPIClient()
         
         # Get available importers
         logger.info("Loading object importers...")
-        importers = get_available_importers(api_client, openapi_parser)
+        importers = get_available_importers(api_client)
         logger.info(f"Loaded {len(importers)} object importers: {list(importers.keys())}")
         
         # Validate input directory
