@@ -1,0 +1,11 @@
+intersight
+pyyaml
+requests
+urllib3
+python-dateutil
+certifi
+six
+cryptography
+pycryptodome
+jsonschema
+python-dotenv
