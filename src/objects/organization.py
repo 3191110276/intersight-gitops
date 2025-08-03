@@ -422,11 +422,12 @@ class Organization(ObjectType):
                             moid = resource_group['moid']
                             resource_groups = self.api_client.query_objects('resource.Group')
                             matching_group = next(
-                                (rg for rg in resource_groups if rg.get('Moid') == moid),
+                                (rg for rg in resource_groups if rg.get('moid') == moid),
                                 None
                             )
-                            if matching_group and matching_group.get('Name'):
-                                resource_group_names.append(matching_group['Name'])
+                            if matching_group and (matching_group.get('Name') or matching_group.get('name')):
+                                name = matching_group.get('Name') or matching_group.get('name')
+                                resource_group_names.append(name)
                             else:
                                 logger.warning(f"Could not resolve ResourceGroup MOID {moid} to name")
                         except Exception as e:
@@ -463,14 +464,15 @@ class Organization(ObjectType):
                     try:
                         resource_groups = self.api_client.query_objects('resource.Group')
                         matching_group = next(
-                            (rg for rg in resource_groups if rg.get('Name') == resource_group_name),
+                            (rg for rg in resource_groups if (rg.get('Name') == resource_group_name or rg.get('name') == resource_group_name)),
                             None
                         )
                         
                         if matching_group:
                             # Create proper reference object
+                            moid = matching_group.get('Moid') or matching_group.get('moid')
                             resource_group_refs.append({
-                                'Moid': matching_group['Moid'],
+                                'Moid': moid,
                                 'ObjectType': 'resource.Group'
                             })
                         else:
